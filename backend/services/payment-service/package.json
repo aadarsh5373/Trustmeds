@@ -1,0 +1,22 @@
+{
+  "name": "payment-service",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@trustmeds/common": "file:../../packages/common",
+    "express": "^4.21.2",
+    "pg": "^8.14.1",
+    "axios": "^1.6.8",
+    "zod": "^3.24.4",
+    "helmet": "^8.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

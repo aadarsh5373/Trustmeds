@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # Infrastructure
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.1
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+
+  # Core Services
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: gateway
+    ports:
+      - "8000:8000"
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:3001
+      ORDER_SERVICE_URL: http://order-service:3002
+      INVENTORY_SERVICE_URL: http://inventory-service:3003
+      DELIVERY_SERVICE_URL: http://delivery-service:3004
+      PAYMENT_SERVICE_URL: http://payment-service:3005
+      AMBULANCE_SERVICE_URL: http://ambulance-service:3006
+      NURSE_SERVICE_URL: http://nurse-service:3007
+      NOTIFICATION_SERVICE_URL: http://notification-service:3008
+      ANALYTICS_SERVICE_URL: http://analytics-service:3009
+    depends_on:
+      - auth-service
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: services/auth-service
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/trustmeds_auth
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: services/inventory-service
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/trustmeds_inventory
+      REDIS_URL: redis://redis:6379
+      ELASTICSEARCH_NODE: http://elasticsearch:9200
+    depends_on:
+      - postgres
+      - redis
+      - elasticsearch
+
+  order-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: services/order-service
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/trustmeds_order
+      REDIS_URL: redis://redis:6379
+      INVENTORY_SERVICE_URL: http://inventory-service:3003
+    depends_on:
+      - postgres
+      - redis
+      - inventory-service
+
+  delivery-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: services/delivery-service
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/trustmeds_delivery
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: services/payment-service
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/trustmeds_payment
+      ORDER_SERVICE_URL: http://order-service:3002
+    depends_on:
+      - postgres
+      - order-service
+
+  ambulance-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: services/ambulance-service
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/trustmeds_ambulance
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+
+  nurse-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: services/nurse-service
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/trustmeds_nurse
+    depends_on:
+      - postgres
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: services/notification-service
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE_NAME: services/analytics-service
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/trustmeds_analytics
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:

@@ -1,0 +1,18 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy root workspace files
+COPY package*.json ./
+COPY packages/common ./packages/common
+
+# Copy service files
+ARG SERVICE_NAME
+COPY services/${SERVICE_NAME} ./services/${SERVICE_NAME}
+
+# Install dependencies
+RUN npm install
+
+# Command to run the service
+WORKDIR /app/services/${SERVICE_NAME}
+CMD ["npm", "start"]
