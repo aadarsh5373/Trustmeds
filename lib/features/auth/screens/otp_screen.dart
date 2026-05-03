@@ -50,7 +50,9 @@ class _OtpScreenState extends State<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final phone = Get.arguments as String? ?? '98765 43210';
+    final Map<String, dynamic> args = Get.arguments as Map<String, dynamic>? ?? {};
+    final phone = args['phone'] as String? ?? '98765 43210';
+    final societyId = args['societyId'] as String?;
 
     final defaultPinTheme = PinTheme(
       width: 52,
@@ -196,7 +198,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 Obx(() => CustomButton(
                       text: AppStrings.verifyOtp,
                       isLoading: _authController.isLoading.value,
-                      onPressed: () => _verifyOTP(_otpController.text),
+                      onPressed: () => _verifyOTP(_otpController.text, societyId: societyId),
                     )),
               ],
             ),
@@ -206,14 +208,13 @@ class _OtpScreenState extends State<OtpScreen> {
     );
   }
 
-  Future<void> _verifyOTP(String otp) async {
+  Future<void> _verifyOTP(String otp, {String? societyId}) async {
     if (otp.length != 6) {
       Helpers.showErrorSnackbar('Please enter a valid 6-digit OTP');
       return;
     }
-    final success = await _authController.verifyOTP(otp);
+    final success = await _authController.verifyOTP(otp, societyId: societyId);
     if (success) {
-      Helpers.showSuccessSnackbar('Login successful!');
       Get.offAllNamed('/home');
     } else {
       Helpers.showErrorSnackbar('Invalid OTP. Try 123456');

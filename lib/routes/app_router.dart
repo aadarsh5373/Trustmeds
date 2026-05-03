@@ -4,6 +4,7 @@ import '../features/auth/screens/onboarding_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/register_screen.dart';
 import '../features/auth/screens/otp_screen.dart';
+import '../features/auth/screens/society_selection_screen.dart';
 import '../features/home/screens/main_shell.dart';
 import '../features/medicines/screens/medicine_list_screen.dart';
 import '../features/medicines/screens/medicine_detail_screen.dart';
@@ -19,12 +20,14 @@ import '../features/lab_tests/screens/book_test_screen.dart';
 import '../features/doctor_consult/screens/doctors_list_screen.dart';
 import '../features/doctor_consult/screens/doctor_profile_screen.dart';
 import '../features/doctor_consult/screens/video_consult_screen.dart';
+import '../features/doctor_consult/screens/video_call_screen.dart';
 import '../features/health_records/screens/records_screen.dart';
 import '../features/health_records/screens/add_record_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/profile/screens/address_screen.dart';
 import '../features/profile/screens/settings_screen.dart';
 import '../features/ambulance/screens/ambulance_screen.dart';
+import '../features/ambulance/screens/live_tracking_screen.dart';
 
 class AppRouter {
   static const String splash = '/';
@@ -49,10 +52,13 @@ class AppRouter {
   static const String videoConsult = '/video-consult';
   static const String records = '/records';
   static const String addRecord = '/add-record';
+  static const String videoCall = '/video-call';
   static const String profile = '/profile';
   static const String addresses = '/addresses';
   static const String settings = '/settings';
   static const String ambulance = '/ambulance';
+  static const String liveTracking = '/live-tracking';
+  static const String selectSociety = '/select-society';
 
   static final pages = [
     GetPage(name: splash, page: () => const SplashScreen(), transition: Transition.fadeIn),
@@ -77,9 +83,12 @@ class AppRouter {
     GetPage(name: videoConsult, page: () => const VideoConsultScreen()),
     GetPage(name: records, page: () => const RecordsScreen()),
     GetPage(name: addRecord, page: () => const AddRecordScreen()),
+    GetPage(name: videoCall, page: () => const VideoCallScreen()),
     GetPage(name: profile, page: () => const ProfileScreen()),
     GetPage(name: addresses, page: () => const AddressScreen()),
     GetPage(name: settings, page: () => const SettingsScreen()),
     GetPage(name: ambulance, page: () => const AmbulanceScreen()),
+    GetPage(name: liveTracking, page: () => const LiveTrackingScreen()),
+    GetPage(name: selectSociety, page: () => const SocietySelectionScreen()),
   ];
 }

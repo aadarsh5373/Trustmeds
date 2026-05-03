@@ -19,18 +19,18 @@ class MedicineController extends GetxController {
 
   void loadMedicines() {
     isLoading.value = true;
-    medicines.value = MockDataService.getMedicines();
-    filteredMedicines.value = medicines;
+    medicines.assignAll(MockDataService.getMedicines());
+    filteredMedicines.assignAll(medicines);
     isLoading.value = false;
   }
 
   void filterByCategory(String category) {
     selectedCategory.value = category;
     if (category.isEmpty) {
-      filteredMedicines.value = medicines;
+      filteredMedicines.assignAll(medicines);
     } else {
-      filteredMedicines.value =
-          medicines.where((m) => m.category == category).toList();
+      filteredMedicines.assignAll(
+          medicines.where((m) => m.category == category).toList());
     }
   }
 
@@ -40,13 +40,13 @@ class MedicineController extends GetxController {
       searchResults.clear();
       return;
     }
-    searchResults.value = medicines
+    searchResults.assignAll(medicines
         .where((m) =>
             m.name.toLowerCase().contains(query.toLowerCase()) ||
             m.genericName.toLowerCase().contains(query.toLowerCase()) ||
             m.brand.toLowerCase().contains(query.toLowerCase()) ||
             m.category.toLowerCase().contains(query.toLowerCase()))
-        .toList();
+        .toList());
   }
 
   void addToCart(MedicineModel medicine) {

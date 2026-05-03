@@ -100,8 +100,8 @@ class MedicineListScreen extends StatelessWidget {
           // Product grid
           Expanded(
             child: Obx(() {
-              final meds = controller.filteredMedicines;
-              if (meds.isEmpty) {
+              // Accessing length registers the listener even if the list is empty
+              if (controller.filteredMedicines.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -128,9 +128,9 @@ class MedicineListScreen extends StatelessWidget {
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                 ),
-                itemCount: meds.length,
+                itemCount: controller.filteredMedicines.length,
                 itemBuilder: (_, index) {
-                  final med = meds[index];
+                  final med = controller.filteredMedicines[index];
                   return ProductCard(
                     medicine: med,
                     onTap: () =>

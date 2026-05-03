@@ -65,6 +65,36 @@ class AddressModel {
   }
 }
 
+class SocietyModel {
+  final String id;
+  final String name;
+  final String pincode;
+  final bool isSubscribed;
+
+  SocietyModel({
+    required this.id,
+    required this.name,
+    required this.pincode,
+    required this.isSubscribed,
+  });
+
+  factory SocietyModel.fromJson(Map<String, dynamic> json) {
+    return SocietyModel(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      pincode: json['pincode'] ?? '',
+      isSubscribed: json['is_subscribed'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'pincode': pincode,
+        'is_subscribed': isSubscribed,
+      };
+}
+
 class UserModel {
   final String uid;
   final String name;
@@ -76,6 +106,9 @@ class UserModel {
   final DateTime? createdAt;
   final String fcmToken;
   final List<AddressModel> addresses;
+  final String? societyId;
+  final String? societyName;
+  final bool isSocietySubscribed;
 
   UserModel({
     required this.uid,
@@ -88,6 +121,9 @@ class UserModel {
     this.createdAt,
     this.fcmToken = '',
     this.addresses = const [],
+    this.societyId,
+    this.societyName,
+    this.isSocietySubscribed = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -105,6 +141,9 @@ class UserModel {
           ? DateTime.tryParse(json['createdAt'])
           : null,
       fcmToken: json['fcmToken'] ?? '',
+      societyId: json['societyId'],
+      societyName: json['societyName'],
+      isSocietySubscribed: json['isSocietySubscribed'] ?? false,
       addresses: (json['addresses'] as List<dynamic>? ?? [])
           .asMap()
           .entries
@@ -128,6 +167,9 @@ class UserModel {
         'gender': gender,
         'createdAt': createdAt?.toIso8601String(),
         'fcmToken': fcmToken,
+        'societyId': societyId,
+        'societyName': societyName,
+        'isSocietySubscribed': isSocietySubscribed,
         'addresses': addresses
             .map((address) => {
                   'id': address.id,
@@ -144,6 +186,9 @@ class UserModel {
     DateTime? dateOfBirth,
     String? gender,
     List<AddressModel>? addresses,
+    String? societyId,
+    String? societyName,
+    bool? isSocietySubscribed,
   }) {
     return UserModel(
       uid: uid,
@@ -156,6 +201,9 @@ class UserModel {
       createdAt: createdAt,
       fcmToken: fcmToken,
       addresses: addresses ?? this.addresses,
+      societyId: societyId ?? this.societyId,
+      societyName: societyName ?? this.societyName,
+      isSocietySubscribed: isSocietySubscribed ?? this.isSocietySubscribed,
     );
   }
 }

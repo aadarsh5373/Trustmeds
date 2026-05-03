@@ -21,124 +21,137 @@ class AmbulanceScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
       ),
       body: Obx(() {
-        if (!controller.isRwaVerified.value || !controller.hasActivePlan.value) {
-          return _buildSubscriptionView(plans, controller);
+        if (!controller.isSocietySubscribed.value) {
+          return _buildUnsubscribedView(controller);
         }
         return _buildActiveSOSView(controller);
       }),
     );
   }
 
-  Widget _buildSubscriptionView(List<AmbulancePlanModel> plans, AmbulanceController controller) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.softPink,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              const Icon(Icons.security, color: AppColors.primary, size: 40),
-              const SizedBox(height: 10),
-              Text(
-                'RWA Verification Required',
-                style: GoogleFonts.nunito(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
+  Widget _buildUnsubscribedView(AmbulanceController controller) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.divider),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'To prevent misuse and ensure rapid access to your society, please select a plan. Your RWA will verify your unit.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.nunito(
-                  fontSize: 14,
-                  color: AppColors.textMuted,
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.emergency_outlined, color: AppColors.warning, size: 48),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                Text(
+                  'Service Unavailable',
+                  style: GoogleFonts.nunito(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Ambulance services are not yet active in ${controller.societyName.value}.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.nunito(
+                    fontSize: 15,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.people_alt_rounded, color: AppColors.secondary, size: 20),
+                    const SizedBox(width: 8),
+                    Obx(() => Text(
+                      '${controller.interestCount.value} neighbors have requested this',
+                      style: GoogleFonts.nunito(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.secondary,
+                      ),
+                    )),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Help us reach 20 requests to activate service!',
+                  style: GoogleFonts.nunito(fontSize: 13, color: AppColors.textLight),
+                ),
+                const SizedBox(height: 32),
+                CustomButton(
+                  text: 'Request for my society',
+                  onPressed: () => controller.requestForSociety(),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 24),
-        ...plans.map((plan) => Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.divider),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+          const SizedBox(height: 32),
+          _buildFeatureList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureList() {
+    final features = [
+      {'icon': Icons.flash_on_rounded, 'title': '3-Min Response Time', 'desc': 'Priority dispatch for subscribed societies'},
+      {'icon': Icons.medical_services_rounded, 'title': 'Paramedic on Board', 'desc': 'Advanced life support in every vehicle'},
+      {'icon': Icons.group_rounded, 'title': 'Neighbor Alerts', 'desc': 'Automatically notify neighborhood volunteers'},
+    ];
+
+    return Column(
+      children: features.map((f) => Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primarySurface,
+                borderRadius: BorderRadius.circular(12),
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Icon(f['icon'] as IconData, color: AppColors.primary, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    plan.title,
-                    style: GoogleFonts.nunito(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textDark,
-                    ),
+                    f['title'] as String,
+                    style: GoogleFonts.nunito(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   Text(
-                    plan.price,
-                    style: GoogleFonts.nunito(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
+                    f['desc'] as String,
+                    style: GoogleFonts.nunito(color: AppColors.textMuted, fontSize: 13),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                plan.description,
-                style: GoogleFonts.nunito(
-                  fontSize: 14,
-                  color: AppColors.textMuted,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ...plan.features.map((f) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: AppColors.success, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        f,
-                        style: GoogleFonts.nunito(
-                          fontSize: 13,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )),
-              const SizedBox(height: 16),
-              CustomButton(
-                text: 'Subscribe',
-                onPressed: () => controller.purchasePlan(plan),
-              ),
-            ],
-          ),
-        )),
-      ],
+            ),
+          ],
+        ),
+      )).toList(),
     );
   }
 
@@ -158,13 +171,13 @@ class AmbulanceScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.verified_user, color: AppColors.success, size: 20),
                 const SizedBox(width: 8),
-                Text(
-                  'RWA Verified - Active Plan',
+                Obx(() => Text(
+                  'Included with ${controller.societyName.value}',
                   style: GoogleFonts.nunito(
                     color: AppColors.success,
                     fontWeight: FontWeight.bold,
                   ),
-                ),
+                )),
               ],
             ),
           ),

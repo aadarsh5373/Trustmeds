@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/utils/validators.dart';
+import '../models/user_model.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -18,6 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String _selectedGender = '';
+  SocietyModel? _selectedSociety;
 
   @override
   void dispose() {
@@ -144,6 +146,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       );
                     }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Your Society',
+                    style: GoogleFonts.nunito(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      final result = await Get.toNamed('/select-society');
+                      if (result != null && result is SocietyModel) {
+                        setState(() => _selectedSociety = result);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.blushPink, width: 1.5),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.apartment_rounded, 
+                            color: _selectedSociety != null ? AppColors.secondary : AppColors.textLight),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _selectedSociety?.name ?? 'Select your society',
+                              style: GoogleFonts.nunito(
+                                fontSize: 16,
+                                color: _selectedSociety != null ? AppColors.textDark : AppColors.textLight,
+                              ),
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right_rounded, color: AppColors.textLight),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 40),
                   CustomButton(

@@ -1,36 +1,87 @@
+import admin from 'firebase-admin';
 import jwt from 'jsonwebtoken';
-import { redis } from '../config/redis.js';
 import { query } from '../config/db.js';
 import { env } from '../config/env.js';
-import { UnauthorizedError } from '@trustmeds/common';
 
-export const authService = {
-  async generateOtp(mobile) {
-    const otp = '123456'; // Default bypass for dev
-    await redis.set(`otp:${mobile}`, otp, 'EX', 300);
-    return otp;
-  },
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  // In production, provide the service account key. 
+  // For now, we assume it's set in the environment variables (GOOGLE_APPLICATION_CREDENTIALS)
+  // or we initialize with default application credentials.
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault()
+  });
+}
 
-  async verifyOtp(mobile, otp) {
-    const savedOtp = await redis.get(`otp:${mobile}`);
-    if (!savedOtp || savedOtp !== otp) {
-      throw new UnauthorizedError('Invalid or expired OTP');
+class AuthService {
+  async verifyFirebaseToken(idToken) {
+    try {
+      // Development bypass
+      if (process.env.NODE_ENV === 'development' && idToken === 'mock_token') {
+        return {
+          uid: 'dev_user_123',
+          phone_number: '+919999999999',
+          email: 'dev@trustmeds.com'
+        };
+      }
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      return decodedToken;
+    } catch (error) {
+      throw new Error('Invalid or expired Firebase token: ' + error.message);
     }
-
-    const { rows } = await query(
-      `INSERT INTO users (mobile) VALUES ($1) 
-       ON CONFLICT (mobile) DO UPDATE SET updated_at = NOW() 
-       RETURNING id, mobile, role`,
-      [mobile]
-    );
-
-    const user = rows[0];
-    const token = jwt.sign(
-      { id: user.id, role: user.role, mobile: user.mobile },
-      env.jwt.secret,
-      { expiresIn: env.jwt.expiresIn }
-    );
-
-    return { user, token };
   }
-};
+
+  async findOrCreateUser(firebaseUser, societyId = null) {
+    const { uid: firebase_uid, phone_number } = firebaseUser;
+    
+    // Check if user exists
+    const result = await query('SELECT * FROM users WHERE firebase_uid = $1', [firebase_uid]);
+    
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      // Update society if provided
+      if (societyId && user.society_id !== societyId) {
+        const updateResult = await query(
+          'UPDATE users SET society_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+          [societyId, user.id]
+        );
+        return updateResult.rows[0];
+      }
+      return user;
+    }
+    
+    // Create new user
+    const insertResult = await query(
+      `INSERT INTO users (firebase_uid, phone_number, society_id) 
+       VALUES ($1, $2, $3) 
+       RETURNING *`,
+      [firebase_uid, phone_number, societyId]
+    );
+    
+    return insertResult.rows[0];
+  }
+
+  generateJWT(user) {
+    const payload = {
+      userId: user.id,
+      role: user.role
+    };
+    
+    // The secret should be in env.jwt.secret
+    return jwt.sign(payload, env.jwt.secret || 'trustmeds_secret_key', {
+      expiresIn: env.jwt.expiresIn || '30d'
+    });
+  }
+
+  // Placeholder for updating user profile if needed
+  async updateProfile(userId, profileData) {
+    const { fullName, email } = profileData;
+    const result = await query(
+      `UPDATE users SET name = $1, email = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *`,
+      [fullName, email, userId]
+    );
+    return result.rows[0];
+  }
+}
+
+export const authService = new AuthService();

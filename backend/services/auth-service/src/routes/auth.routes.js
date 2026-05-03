@@ -1,9 +1,15 @@
 import { Router } from 'express';
-import * as authController from '../controllers/auth.controller.js';
+import { loginWithFirebase, searchSocieties, updateProfile } from '../controllers/auth.controller.js';
 
 const router = Router();
 
-router.post('/request-otp', authController.requestOtp);
-router.post('/verify-otp', authController.verifyOtp);
+// Firebase Token Login
+router.post('/login', loginWithFirebase);
+
+// Profile Updates
+router.put('/:userId/profile', updateProfile);
+
+// Societies
+router.get('/societies/search', searchSocieties);
 
 export default router;

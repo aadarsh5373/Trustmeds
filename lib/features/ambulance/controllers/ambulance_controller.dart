@@ -5,7 +5,10 @@ import 'dart:async';
 
 class AmbulanceController extends GetxController {
   final RxBool isRwaVerified = false.obs;
-  final RxBool hasActivePlan = false.obs;
+  final RxBool hasActivePlan = false.obs; // This is now redundant but kept for compatibility
+  final RxBool isSocietySubscribed = false.obs;
+  final RxString societyName = ''.obs;
+  final RxInt interestCount = 12.obs; // Mock interest count
   final RxBool isSosActive = false.obs;
   
   final RxString activeDriverName = ''.obs;
@@ -14,7 +17,15 @@ class AmbulanceController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Initially user is not verified.
+    _checkSocietyStatus();
+  }
+
+  void _checkSocietyStatus() {
+    // In real app, fetch from auth controller or API
+    // Mocking for now
+    societyName.value = 'Sun City Apartments';
+    isSocietySubscribed.value = true;
+    isRwaVerified.value = true;
   }
 
   void purchasePlan(AmbulancePlanModel plan) {
@@ -25,8 +36,8 @@ class AmbulanceController extends GetxController {
   }
 
   void triggerSos() {
-    if (!isRwaVerified.value || !hasActivePlan.value) {
-      Helpers.showErrorSnackbar('Active plan & RWA approval required to trigger SOS.');
+    if (!isSocietySubscribed.value) {
+      Helpers.showErrorSnackbar('Ambulance services are not yet active in your society.');
       return;
     }
     
@@ -38,6 +49,9 @@ class AmbulanceController extends GetxController {
       activeDriverName.value = 'Ramesh Kumar (Paramedic)';
       activeDriverNumber.value = '+91 98765 43210';
       Helpers.showInfoSnackbar('Driver assigned. ETA: 4 mins.');
+      
+      // Automatically navigate to live tracking
+      Get.toNamed('/live-tracking');
     });
   }
 
@@ -46,5 +60,12 @@ class AmbulanceController extends GetxController {
     activeDriverName.value = '';
     activeDriverNumber.value = '';
     Helpers.showInfoSnackbar('SOS Cancelled.');
+  }
+
+  Future<void> requestForSociety() async {
+    // Mock API call to submit lead
+    await Future.delayed(const Duration(seconds: 1));
+    interestCount.value++;
+    Helpers.showSuccessSnackbar('Interest recorded! We will reach out to your society RWA soon.');
   }
 }

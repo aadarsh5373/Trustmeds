@@ -1,42 +1,25 @@
-import { esClient } from '../config/elasticsearch.js';
-
-const MEDICINE_INDEX = 'medicines';
+import { query } from '../config/db.js';
 
 export const searchService = {
-  async indexMedicine(medicine) {
-    return esClient.index({
-      index: MEDICINE_INDEX,
-      id: medicine.id,
-      document: {
-        name: medicine.name,
-        salt: medicine.salt,
-        brand: medicine.brand,
-        price: medicine.price,
-        stock: medicine.stock,
-        category: medicine.category,
-        tags: medicine.tags,
-      }
-    });
+  async searchMedicines(searchTerm) {
+    try {
+      // Fallback to PostgreSQL ILIKE for search if ES is not available
+      const { rows } = await query(
+        `SELECT * FROM medicines 
+         WHERE name ILIKE $1 OR brand ILIKE $1 OR composition ILIKE $1 
+         LIMIT 20`,
+        [`%${searchTerm}%`]
+      );
+      
+      return rows;
+    } catch (error) {
+      console.error('Search failed:', error);
+      return [];
+    }
   },
 
-  async searchMedicines(query, limit = 20) {
-    const result = await esClient.search({
-      index: MEDICINE_INDEX,
-      body: {
-        size: limit,
-        query: {
-          multi_match: {
-            query,
-            fields: ['name^3', 'salt^2', 'brand', 'tags'],
-            fuzziness: 'AUTO'
-          }
-        }
-      }
-    });
-
-    return result.hits.hits.map(hit => ({
-      id: hit._id,
-      ...hit._source
-    }));
+  async indexMedicine(medicine) {
+    // This would typically sync with Elasticsearch
+    console.log('Indexing medicine for search:', medicine.name);
   }
 };

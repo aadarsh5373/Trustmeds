@@ -1,9 +1,29 @@
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../services/api_service.dart';
 import '../../auth/models/user_model.dart';
 import '../../../services/local_data_service.dart';
 
 class AuthController extends GetxController {
   final LocalDataService _localDataService = Get.find<LocalDataService>();
+  final ApiService _apiService = Get.put(ApiService());
+  
+  FirebaseAuth? get _auth {
+    try {
+      return FirebaseAuth.instance;
+    } catch (_) {
+      return null;
+    }
+  }
+  
+  bool get _isFirebaseEnabled {
+    try {
+      return _auth != null && _auth!.app.name.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+  
   final Rx<UserModel?> user = Rx<UserModel?>(null);
   final RxBool isLoading = false.obs;
   final RxBool isLoggedIn = false.obs;
@@ -87,27 +107,142 @@ class AuthController extends GetxController {
 
   Future<void> sendOTP(String phoneNumber) async {
     isLoading.value = true;
-    // Mock: simulate OTP sending delay
-    await Future.delayed(const Duration(seconds: 2));
-    verificationId.value = 'mock_verification_id';
-    isLoading.value = false;
-  }
-
-  Future<bool> verifyOTP(String otp) async {
-    isLoading.value = true;
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (otp == '123456') {
-      user.value = _buildMockUser();
-      isLoggedIn.value = true;
-      selectedAddressId.value = _resolveSelectedAddressId();
-      await _persistUser();
+    
+    if (!_isFirebaseEnabled) {
+      // Mock bypass
+      await Future.delayed(const Duration(seconds: 1));
+      verificationId.value = 'mock_ver_id';
       isLoading.value = false;
-      return true;
+      Get.snackbar('Dev Mode', 'Using mock OTP (123456)');
+      return;
     }
 
-    isLoading.value = false;
-    return false;
+    try {
+      await _auth!.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await _signInWithCredential(credential);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          isLoading.value = false;
+          Get.snackbar('Verification Failed', e.message ?? 'Unknown error');
+        },
+        codeSent: (String verId, int? resendToken) {
+          verificationId.value = verId;
+          isLoading.value = false;
+        },
+        codeAutoRetrievalTimeout: (String verId) {
+          verificationId.value = verId;
+        },
+      );
+    } catch (e) {
+      isLoading.value = false;
+      Get.snackbar('Error', e.toString());
+    }
+  }
+
+  Future<bool> verifyOTP(String otp, {String? societyId}) async {
+    isLoading.value = true;
+    
+    if (!_isFirebaseEnabled || verificationId.value == 'mock_ver_id') {
+      if (otp == '123456') {
+        await _signInWithMockToken(societyId: societyId);
+        return true;
+      }
+      isLoading.value = false;
+      Get.snackbar('Error', 'Invalid Dev OTP');
+      return false;
+    }
+
+    try {
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: verificationId.value,
+        smsCode: otp,
+      );
+      await _signInWithCredential(credential, societyId: societyId);
+      return true;
+    } catch (e) {
+      isLoading.value = false;
+      Get.snackbar('Error', 'Invalid OTP');
+      return false;
+    }
+  }
+
+  Future<void> _signInWithMockToken({String? societyId}) async {
+    try {
+      // Send mock token to our backend
+      final response = await _apiService.client.post('/auth/login', data: {
+        'idToken': 'mock_token',
+        'societyId': societyId,
+      });
+
+      if (response.data['success']) {
+        final userData = response.data['user'];
+        final accessToken = response.data['accessToken'];
+        
+        await _apiService.saveToken(accessToken);
+        
+        user.value = UserModel(
+          uid: userData['id'],
+          name: userData['name'] ?? 'Dev User',
+          phone: userData['phone_number'] ?? '+919999999999',
+          email: userData['email'] ?? 'dev@trustmeds.com',
+          gender: 'Not Specified',
+          createdAt: DateTime.parse(userData['created_at']),
+          addresses: [],
+        );
+        
+        isLoggedIn.value = true;
+        selectedAddressId.value = _resolveSelectedAddressId();
+        await _persistUser();
+      }
+    } catch (e) {
+      Get.snackbar('Dev Login Failed', e.toString());
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> _signInWithCredential(PhoneAuthCredential credential, {String? societyId}) async {
+    try {
+      final UserCredential userCredential = await _auth!.signInWithCredential(credential);
+      final String? idToken = await userCredential.user?.getIdToken();
+      
+      if (idToken != null) {
+        // Send token to our backend
+        final response = await _apiService.client.post('/auth/login', data: {
+          'idToken': idToken,
+          'societyId': societyId,
+        });
+
+        if (response.data['success']) {
+          // Parse user data from backend
+          // We map it to our UserModel
+          final userData = response.data['user'];
+          final accessToken = response.data['accessToken'];
+          
+          await _apiService.saveToken(accessToken);
+          
+          user.value = UserModel(
+            uid: userData['id'],
+            name: userData['name'] ?? '',
+            phone: userData['phone_number'] ?? '',
+            email: userData['email'] ?? '',
+            gender: 'Not Specified', // Update backend to handle gender if needed
+            createdAt: DateTime.parse(userData['created_at']),
+            addresses: [], // Fetch addresses later or parse from response
+          );
+          
+          isLoggedIn.value = true;
+          selectedAddressId.value = _resolveSelectedAddressId();
+          await _persistUser();
+        }
+      }
+    } catch (e) {
+      Get.snackbar('Login Failed', e.toString());
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   Future<void> signInWithGoogle() async {
@@ -172,6 +307,8 @@ class AuthController extends GetxController {
   }
 
   void signOut() {
+    _auth?.signOut();
+    _apiService.clearToken();
     user.value = null;
     isLoggedIn.value = false;
     selectedAddressId.value = '';
